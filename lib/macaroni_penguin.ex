@@ -1,7 +1,7 @@
 # all the program state is stored in ETS, via named variables that hold the list data.
 # the only state that is stored in memory of the process are the named pointers and the buffer.
 # therefore, state doesn't need to be explicitly updated here except for the buffer.
-defmodule Penguin do
+defmodule MacaroniPenguin do
   defmodule State do
     defstruct [
       :table,
