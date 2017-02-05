@@ -5,7 +5,10 @@ defmodule Stmt do
     :rhs
   ]
 
-  def execute(table, %Stmt{op: :sync_merge, lhs: left_name, rhs: right_name}) do
+  # returns true if anything changed
+  def execute(table, %Stmt{op: operator, lhs: left_name, rhs: right_name})
+    when operator == :"<=" or operator == :"<+"
+  do
     left = :ets.lookup(table, left_name)
     left = 
       case left do
@@ -20,5 +23,13 @@ defmodule Stmt do
       end
     out = MapSet.union(left, right)
     :ets.insert(table, {left_name, out})
+
+    # TODO: this is fairly inefficient - is there a way to detect this as part of the union above?
+    if out == left do
+      # the output is exactly the same as the original input, so nothing changed
+      false
+    else
+      true
+    end
   end
 end

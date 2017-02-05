@@ -102,22 +102,52 @@ defmodule MacaroniPenguin do
         :ets.insert(table, {collection_name, MapSet.put(collection, value)})
       end
 
-      # Stmt executor
-      defp execute_stmts(_table, []) do
-        # base case
-      end
-      defp execute_stmts(table, [stmt | remaining]) do
-        Stmt.execute(table, stmt)
-        execute_stmts(table, remaining)
+      #####
+      # Stmt executors
+      #####
+      defp execute_stmts(table, stmts) do
+        grouped_stmts = Enum.group_by(stmts, fn(stmt) -> stmt.op end)
+        :ok = execute_sync_stmts(table, Map.get(grouped_stmts, :"<=", []))
+        async_stmts = 
+          grouped_stmts
+          |> Map.take([:"<~", :"<+", :"<-"])
+          |> Map.values
+          |> List.flatten
+        :ok = execute_async_stmts(table, async_stmts)
       end
 
-      # Scratch clearer
+      # sync stmts loop until nothing changes
+      defp execute_sync_stmts(table, stmts) do
+        changed = Enum.reduce(stmts, false, fn(stmt, acc) -> Stmt.execute(table, stmt) or acc end)
+        if changed do
+          execute_sync_stmts(table, stmts)
+        else
+          :ok
+        end
+      end
+
+      # async stmts don't loop
+      defp execute_async_stmts(table, stmts) do
+        Enum.map(stmts, fn(stmt) -> Stmt.execute(table, stmt) end)
+        :ok
+      end
+      #####
+      # End stmt executors
+      #####
+
+      #####
+      # Collection managers
+      #####
+      # Scratch clearers
       defp clear_if_ephemeral(table, {name, :scratch}) do
         :ets.delete(table, name)
       end
       defp clear_if_ephemeral(_, _) do
-        # do nothing, because not collection is not ephemeral
+        # do nothing, because collection is not ephemeral
       end
+      #####
+      # End collection managers
+      #####
     end
   end
 end
