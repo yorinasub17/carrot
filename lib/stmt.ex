@@ -5,22 +5,13 @@ defmodule Stmt do
     :rhs
   ]
 
+  # Merge (sync and async) statement
   # returns true if anything changed
   def execute(table, %Stmt{op: operator, lhs: left_name, rhs: right_name})
     when operator == :"<=" or operator == :"<+"
   do
-    left = :ets.lookup(table, left_name)
-    left = 
-      case left do
-        [] -> MapSet.new
-        [{left_name, x}] -> x
-      end
-    right = :ets.lookup(table, right_name)
-    right =
-      case right do
-        [] -> MapSet.new
-        [{right_name, x}] -> x
-      end
+    left = lookup_collection(table, left_name)
+    right = lookup_collection(table, right_name)
     out = MapSet.union(left, right)
     :ets.insert(table, {left_name, out})
 
@@ -30,6 +21,23 @@ defmodule Stmt do
       false
     else
       true
+    end
+  end
+
+  # Delete statement
+  def execute(table, %Stmt{op: :"<-", lhs: left_name, rhs: right_name}) do
+    left = lookup_collection(table, left_name)
+    right = lookup_collection(table, right_name)
+    out = MapSet.difference(left, right)
+    :ets.insert(table, {left_name, out})
+  end
+
+  ### Helpers
+  defp lookup_collection(table, collection_name) do
+    collection = :ets.lookup(table, collection_name)
+    case collection do
+      [] -> MapSet.new
+      [{collection_name, x}] -> x
     end
   end
 end

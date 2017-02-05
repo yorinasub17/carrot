@@ -52,6 +52,19 @@ defmodule MacaroniPenguinTest do
     end
   end
 
+  defmodule DeletePenguin do
+    use MacaroniPenguin
+
+    def collections() do
+      %{"deletefoo" => :table,
+        "deletebar" => :scratch}
+    end
+
+    def statements() do
+      # deletefoo <- deletebar
+      [%Stmt{op: :"<-", lhs: "deletefoo", rhs: "deletebar"}]
+    end
+  end
 
   test "full integration test of loop" do
     process = Penguin.start()
@@ -104,4 +117,20 @@ defmodule MacaroniPenguinTest do
     assert :ets.lookup(:penguin_process_state, "asyncbaz") == []
   end
 
+  test "delete statements are executed" do
+    process = DeletePenguin.start()
+
+    # setup to make sure there is already some data
+    :ets.insert(:penguin_process_state, {"deletefoo", MapSet.new(["hello", "world"])})
+
+    # now trigger a deletion
+    DeletePenguin.insert(process, "deletebar", "hello")
+    :timer.sleep(100)
+
+    # Verify the deletion statement was executed
+    assert :ets.lookup(:penguin_process_state, "deletefoo") == [{"deletefoo", MapSet.new(["world"])}]
+
+    # Verify scratch collections were emptied
+    assert :ets.lookup(:penguin_process_state, "deletebar") == []
+  end
 end

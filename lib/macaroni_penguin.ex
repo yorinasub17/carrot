@@ -110,7 +110,7 @@ defmodule MacaroniPenguin do
         :ok = execute_sync_stmts(table, Map.get(grouped_stmts, :"<=", []))
         async_stmts = 
           grouped_stmts
-          |> Map.take([:"<~", :"<+", :"<-"])
+          |> Map.take([:"<+", :"<-"])
           |> Map.values
           |> List.flatten
         :ok = execute_async_stmts(table, async_stmts)
